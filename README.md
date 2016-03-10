@@ -1,4 +1,4 @@
-dirty-rpc -- expose functions as remote calls
+dirty-rpc -- expose functions as http calls
 =============================================
 
 ## Install
@@ -10,9 +10,10 @@ dirty-rpc -- expose functions as remote calls
 ```javascript
 
 import Promise from 'bluebird'
+import http from 'http'
 import {server} from 'dirty-rpc'
 
-const srv = server({
+const listener = server({
 
   // Any function can be a request handler as long as it accepts and returns JSON data.
   // The only exception is if the function is async, in which case it should return a promise
@@ -22,7 +23,7 @@ const srv = server({
   }
 })
 
-srv.listen(3000, 'localhost', () => {
+http.createServer(listener).listen(3000, 'localhost', () => {
   console.log('RPC server listening...')
 })
 ```

@@ -1,12 +1,7 @@
 /* eslint-env mocha */
-import {spy} from 'sinon'
-import chai, {expect} from 'chai'
-import sinonChai from 'sinon-chai'
+import {expect} from 'chai'
 import {PassThrough} from 'stream'
-import http from 'http'
 import server from './server'
-
-chai.use(sinonChai)
 
 function getRequestStub (url) {
   const requestStub = new PassThrough()
@@ -21,10 +16,6 @@ function getResponseStub () {
     this.headers[name] = value
   }
   return responseStub
-}
-
-function getRequestHandler () {
-  return http.createServer.args[0][0]
 }
 
 function getErrorData (err) {
@@ -63,22 +54,14 @@ function expectResponse (response, expectedStatus, expectedData) {
 
 describe('rpc server', function () {
   beforeEach(function () {
-    spy(http, 'createServer')
     this.requestStub = getRequestStub('/sum')
     this.responseStub = getResponseStub()
   })
-  afterEach(function () {
-    http.createServer.restore()
-  })
-
-  it('should return an http server', function () {
-    const srv = server()
-    expect(srv).to.be.instanceof(http.Server)
-  })
 
   it('should handle request errors', function () {
-    server({sum: () => {}})
-    getRequestHandler()(this.requestStub, this.responseStub)
+    // call the server's request handler with stub data
+    const listener = server({sum: () => {}})
+    listener(this.requestStub, this.responseStub)
 
     const requestErr = new Error('cannot parse request')
     this.requestStub.emit('error', requestErr)
@@ -87,10 +70,8 @@ describe('rpc server', function () {
   })
 
   it('should handler unknown function calls', function () {
-    server()
-
-    // call the server's request handler with stub data
-    getRequestHandler()(this.requestStub, this.responseStub)
+    const listener = server()
+    listener(this.requestStub, this.responseStub)
 
     return expectResponse(this.responseStub, 501)
   })
@@ -99,8 +80,8 @@ describe('rpc server', function () {
     function sum (a, b) {
       return a + b
     }
-    server({sum})
-    getRequestHandler()(this.requestStub, this.responseStub)
+    const listener = server({sum})
+    listener(this.requestStub, this.responseStub)
 
     const sumArgs = [1, 2]
     const requestBody = JSON.stringify(sumArgs)
@@ -118,8 +99,8 @@ describe('rpc server', function () {
     function sum (a, b) {
       throw sumErr
     }
-    server({sum})
-    getRequestHandler()(this.requestStub, this.responseStub)
+    const listener = server({sum})
+    listener(this.requestStub, this.responseStub)
 
     const sumArgs = [1, 2]
     const requestBody = JSON.stringify(sumArgs)
@@ -133,8 +114,8 @@ describe('rpc server', function () {
     function sum (a, b) {
       return Promise.resolve(a + b)
     }
-    server({sum})
-    getRequestHandler()(this.requestStub, this.responseStub)
+    const listener = server({sum})
+    listener(this.requestStub, this.responseStub)
 
     const sumArgs = [1, 2]
     const requestBody = JSON.stringify(sumArgs)
@@ -149,8 +130,8 @@ describe('rpc server', function () {
     function sum (a, b) {
       return Promise.reject(sumErr)
     }
-    server({sum})
-    getRequestHandler()(this.requestStub, this.responseStub)
+    const listener = server({sum})
+    listener(this.requestStub, this.responseStub)
 
     const sumArgs = [1, 2]
     const requestBody = JSON.stringify(sumArgs)

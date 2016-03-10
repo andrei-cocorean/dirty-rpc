@@ -1,21 +1,17 @@
-import http from 'http'
 import url from 'url'
 
 /**
- * Create an RPC server that delegates to the handlers.
+ * Returns a request listener that dispatches calls to the handlers.
  *
  * Any function can be a handler as long as it accepts and returns JSON data.
  * The only exception to this rule is if the function is asynchronous in which case
  * it should return a Promise that will resolve with JSON data.
  *
- * This function doesn't start listening for requests. You have to call .listen(...)
- * on the server object it returns.
- *
- * @param  {object}      handlers a mapping function_name -> function
- * @return {http.Server}          the http server
+ * @param  {object}                       handlers a mapping function_name -> handler
+ * @return {function (request, response)}
  */
 export default function server (handlers = {}) {
-  const server = http.createServer((request, response) => {
+  return function rpcListener (request, response) {
     const replyError = getErrorReplier(response)
     request.on('error', err => replyError(err))
     response.on('error', err => console.error(err))
@@ -38,8 +34,7 @@ export default function server (handlers = {}) {
         const reply = getReplier(response)
         handleRequest(requestHandler, requestParams, reply, replyError)
       })
-  })
-  return server
+  }
 }
 
 /**
