@@ -1,0 +1,18 @@
+{
+  "name": "dirty-rpc",
+  "version": "0.0.0",
+  "description": "expose functions as remote calls",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "rpc",
+    "promises"
+  ],
+  "author": "Andrei Cocorean",
+  "license": "MIT",
+  "engines": {
+    "node": ">=4"
+  }
+}
