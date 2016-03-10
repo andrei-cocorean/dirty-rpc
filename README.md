@@ -1,5 +1,5 @@
 dirty-rpc -- expose functions as http calls
-=============================================
+===========================================
 
 ## Install
 
@@ -11,9 +11,9 @@ dirty-rpc -- expose functions as http calls
 
 import Promise from 'bluebird'
 import http from 'http'
-import {server} from 'dirty-rpc'
+import {httpListener} from 'dirty-rpc'
 
-const listener = server({
+const listener = httpListener({
 
   // Any function can be a request handler as long as it accepts and returns JSON data.
   // The only exception is if the function is async, in which case it should return a promise

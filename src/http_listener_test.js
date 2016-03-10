@@ -1,7 +1,7 @@
 /* eslint-env mocha */
 import {expect} from 'chai'
 import {PassThrough} from 'stream'
-import server from './server'
+import httpListener from './http_listener'
 
 function getRequestStub (url) {
   const requestStub = new PassThrough()
@@ -52,15 +52,14 @@ function expectResponse (response, expectedStatus, expectedData) {
   })
 }
 
-describe('rpc server', function () {
+describe('http listener', function () {
   beforeEach(function () {
     this.requestStub = getRequestStub('/sum')
     this.responseStub = getResponseStub()
   })
 
   it('should handle request errors', function () {
-    // call the server's request handler with stub data
-    const listener = server({sum: () => {}})
+    const listener = httpListener({sum: () => {}})
     listener(this.requestStub, this.responseStub)
 
     const requestErr = new Error('cannot parse request')
@@ -70,7 +69,7 @@ describe('rpc server', function () {
   })
 
   it('should handler unknown function calls', function () {
-    const listener = server()
+    const listener = httpListener()
     listener(this.requestStub, this.responseStub)
 
     return expectResponse(this.responseStub, 501)
@@ -80,7 +79,7 @@ describe('rpc server', function () {
     function sum (a, b) {
       return a + b
     }
-    const listener = server({sum})
+    const listener = httpListener({sum})
     listener(this.requestStub, this.responseStub)
 
     const sumArgs = [1, 2]
@@ -99,7 +98,7 @@ describe('rpc server', function () {
     function sum (a, b) {
       throw sumErr
     }
-    const listener = server({sum})
+    const listener = httpListener({sum})
     listener(this.requestStub, this.responseStub)
 
     const sumArgs = [1, 2]
@@ -114,7 +113,7 @@ describe('rpc server', function () {
     function sum (a, b) {
       return Promise.resolve(a + b)
     }
-    const listener = server({sum})
+    const listener = httpListener({sum})
     listener(this.requestStub, this.responseStub)
 
     const sumArgs = [1, 2]
@@ -130,7 +129,7 @@ describe('rpc server', function () {
     function sum (a, b) {
       return Promise.reject(sumErr)
     }
-    const listener = server({sum})
+    const listener = httpListener({sum})
     listener(this.requestStub, this.responseStub)
 
     const sumArgs = [1, 2]
