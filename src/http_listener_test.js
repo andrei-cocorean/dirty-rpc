@@ -60,7 +60,7 @@ describe('http listener', function () {
   })
 
   it('should handle request errors', function () {
-    const listener = httpListener({sum: () => {}})
+    const listener = httpListener()
     listener(this.requestStub, this.responseStub)
 
     const requestErr = new Error('cannot parse request')
@@ -69,7 +69,20 @@ describe('http listener', function () {
     return expectResponse(this.responseStub, getErrorData(requestErr))
   })
 
-  it('should handler unknown function calls', function () {
+  it('should handle request parsing errors', function () {
+    const listener = httpListener()
+    listener(this.requestStub, this.responseStub)
+
+    this.requestStub.end('invalid json')
+
+    return expectResponse(this.responseStub)
+      .then(responseData => {
+        expect(responseData, 'rpc response').to.not.have.property('result')
+        expect(responseData.error, 'error').to.include.keys('message', 'stack')
+      })
+  })
+
+  it('should handle unknown function calls', function () {
     const listener = httpListener()
     listener(this.requestStub, this.responseStub)
 

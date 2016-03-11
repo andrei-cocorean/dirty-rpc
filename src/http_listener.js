@@ -8,7 +8,7 @@
  * @param  {object}                       handlers a mapping function_name -> handler
  * @return {function (request, response)}
  */
-export default function server (handlers = {}) {
+export default function createListener (handlers = {}) {
   return function rpcListener (request, response) {
     const replyError = getErrorReplier(response)
     request.on('error', err => replyError(err))
@@ -20,8 +20,15 @@ export default function server (handlers = {}) {
         bodyChunks.push(chunk)
       })
       .on('end', () => {
-        const body = Buffer.concat(bodyChunks).toString()
-        const {method, params} = JSON.parse(body)
+        let body
+        try {
+          const bodyStr = Buffer.concat(bodyChunks).toString()
+          body = JSON.parse(bodyStr)
+        } catch (err) {
+          return replyError(err)
+        }
+
+        const {method, params} = body
         const requestHandler = handlers[method]
         if (!requestHandler) return replyError(new Error(`No such function: ${method}`))
 
