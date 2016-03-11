@@ -85,10 +85,9 @@ describe('http listener', function () {
     const sumArgs = [1, 2]
     const requestBody = JSON.stringify(sumArgs)
     const bodyChunks = requestBody.split(',')
-    this.requestStub.emit('data', new Buffer(bodyChunks[0]))
-    this.requestStub.emit('data', new Buffer(','))
-    this.requestStub.emit('data', new Buffer(bodyChunks[1]))
-    this.requestStub.emit('end')
+    this.requestStub.write(bodyChunks[0])
+    this.requestStub.write(',')
+    this.requestStub.end(bodyChunks[1])
 
     return expectResponse(this.responseStub, 200, {result: 3})
   })
@@ -103,8 +102,7 @@ describe('http listener', function () {
 
     const sumArgs = [1, 2]
     const requestBody = JSON.stringify(sumArgs)
-    this.requestStub.emit('data', new Buffer(requestBody))
-    this.requestStub.emit('end')
+    this.requestStub.end(requestBody)
 
     return expectResponse(this.responseStub, 500, getErrorData(sumErr))
   })
@@ -118,8 +116,7 @@ describe('http listener', function () {
 
     const sumArgs = [1, 2]
     const requestBody = JSON.stringify(sumArgs)
-    this.requestStub.emit('data', new Buffer(requestBody))
-    this.requestStub.emit('end')
+    this.requestStub.end(requestBody)
 
     return expectResponse(this.responseStub, 200, {result: 3})
   })
@@ -134,8 +131,7 @@ describe('http listener', function () {
 
     const sumArgs = [1, 2]
     const requestBody = JSON.stringify(sumArgs)
-    this.requestStub.emit('data', new Buffer(requestBody))
-    this.requestStub.emit('end')
+    this.requestStub.end(requestBody)
 
     return expectResponse(this.responseStub, 500, getErrorData(sumErr))
   })
