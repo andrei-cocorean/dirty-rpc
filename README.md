@@ -28,6 +28,20 @@ http.createServer(listener).listen(3000, 'localhost', () => {
 })
 ```
 
+or using Express:
+
+```javascript
+import express from 'express'
+
+/* ... */
+
+const app = express()
+app.post('/', listener)
+app.listen(3000, 'localhost', () => {
+  console.log('RPC server listening...')
+})
+```
+
 ## Call a remote function
 
 ```javascript
@@ -44,12 +58,14 @@ readFile('some_file.txt')
 
 # Error handling
 
-By default all server errors result in an HTTP 500 code and a JSON reply of:
+All server errors result in a JSON reply of:
 
 ```json
 {
-  "message": "error message",
-  "stack": "error stack trace"
+  "error": {
+    "message": "error message",
+    "stack": "error stack trace"
+  }
 }
 ```
 

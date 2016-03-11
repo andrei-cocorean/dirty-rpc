@@ -3,12 +3,6 @@ import {expect} from 'chai'
 import {PassThrough} from 'stream'
 import httpListener from './http_listener'
 
-function getRequestStub (url) {
-  const requestStub = new PassThrough()
-  requestStub.url = url
-  return requestStub
-}
-
 function getResponseStub () {
   const responseStub = new PassThrough()
   responseStub.setHeader = function (name, value) {
@@ -18,14 +12,23 @@ function getResponseStub () {
   return responseStub
 }
 
+function getRpcRequest (method, params) {
+  return JSON.stringify({method, params})
+}
+
+function getSuccessData (result) {
+  return {result}
+}
+
 function getErrorData (err) {
-  return {
+  const errorData = {
     message: err.message,
     stack: err.stack,
   }
+  return {error: errorData}
 }
 
-function expectResponse (response, expectedStatus, expectedData) {
+function expectResponse (response, expectedData) {
   return new Promise(resolve => {
     let responseBody
 
@@ -35,7 +38,7 @@ function expectResponse (response, expectedStatus, expectedData) {
         responseBody = chunk
       })
       .on('end', () => {
-        expect(response.statusCode, 'status code').to.equal(expectedStatus)
+        expect(response.statusCode, 'status code').to.equal(200)
         expect(response.headers, 'response headers').to.deep.equal({
           'Content-Type': 'application/json',
         })
@@ -43,18 +46,16 @@ function expectResponse (response, expectedStatus, expectedData) {
         const responseData = JSON.parse(responseBody)
         if (expectedData) {
           expect(responseData, 'response data').to.deep.equal(expectedData)
-        } else {
-          expect(responseData, 'response data').to.be.ok
         }
 
-        resolve()
+        resolve(responseData)
       })
   })
 }
 
 describe('http listener', function () {
   beforeEach(function () {
-    this.requestStub = getRequestStub('/sum')
+    this.requestStub = new PassThrough()
     this.responseStub = getResponseStub()
   })
 
@@ -65,14 +66,21 @@ describe('http listener', function () {
     const requestErr = new Error('cannot parse request')
     this.requestStub.emit('error', requestErr)
 
-    return expectResponse(this.responseStub, 500, getErrorData(requestErr))
+    return expectResponse(this.responseStub, getErrorData(requestErr))
   })
 
   it('should handler unknown function calls', function () {
     const listener = httpListener()
     listener(this.requestStub, this.responseStub)
 
-    return expectResponse(this.responseStub, 501)
+    const requestBody = getRpcRequest('unknown')
+    this.requestStub.end(requestBody)
+
+    return expectResponse(this.responseStub)
+      .then(responseData => {
+        expect(responseData, 'rpc response').to.not.have.property('result')
+        expect(responseData.error, 'error').to.include.keys('message', 'stack')
+      })
   })
 
   it('should call sync request handlers', function () {
@@ -82,14 +90,13 @@ describe('http listener', function () {
     const listener = httpListener({sum})
     listener(this.requestStub, this.responseStub)
 
-    const sumArgs = [1, 2]
-    const requestBody = JSON.stringify(sumArgs)
-    const bodyChunks = requestBody.split(',')
-    this.requestStub.write(bodyChunks[0])
-    this.requestStub.write(',')
-    this.requestStub.end(bodyChunks[1])
+    const requestBody = getRpcRequest('sum', [1, 2])
+    const chunk1 = requestBody.substr(0, requestBody.length)
+    const chunk2 = requestBody.substr(requestBody.length)
+    this.requestStub.write(chunk1)
+    this.requestStub.end(chunk2)
 
-    return expectResponse(this.responseStub, 200, {result: 3})
+    return expectResponse(this.responseStub, getSuccessData(3))
   })
 
   it('should handle sync request handler errors', function () {
@@ -100,11 +107,10 @@ describe('http listener', function () {
     const listener = httpListener({sum})
     listener(this.requestStub, this.responseStub)
 
-    const sumArgs = [1, 2]
-    const requestBody = JSON.stringify(sumArgs)
+    const requestBody = getRpcRequest('sum', [1, 2])
     this.requestStub.end(requestBody)
 
-    return expectResponse(this.responseStub, 500, getErrorData(sumErr))
+    return expectResponse(this.responseStub, getErrorData(sumErr))
   })
 
   it('should call async request handlers', function () {
@@ -114,11 +120,10 @@ describe('http listener', function () {
     const listener = httpListener({sum})
     listener(this.requestStub, this.responseStub)
 
-    const sumArgs = [1, 2]
-    const requestBody = JSON.stringify(sumArgs)
+    const requestBody = getRpcRequest('sum', [1, 2])
     this.requestStub.end(requestBody)
 
-    return expectResponse(this.responseStub, 200, {result: 3})
+    return expectResponse(this.responseStub, getSuccessData(3))
   })
 
   it('should handle async request handler errors', function () {
@@ -129,10 +134,9 @@ describe('http listener', function () {
     const listener = httpListener({sum})
     listener(this.requestStub, this.responseStub)
 
-    const sumArgs = [1, 2]
-    const requestBody = JSON.stringify(sumArgs)
+    const requestBody = getRpcRequest('sum', [1, 2])
     this.requestStub.end(requestBody)
 
-    return expectResponse(this.responseStub, 500, getErrorData(sumErr))
+    return expectResponse(this.responseStub, getErrorData(sumErr))
   })
 })

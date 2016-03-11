@@ -1,5 +1,3 @@
-import url from 'url'
-
 /**
  * Returns a request listener that dispatches calls to the handlers.
  *
@@ -16,13 +14,6 @@ export default function server (handlers = {}) {
     request.on('error', err => replyError(err))
     response.on('error', err => console.error(err))
 
-    const {pathname} = url.parse(request.url)
-
-    // remove the leading slash
-    const handlerName = pathname.substring(1)
-    const requestHandler = handlers[handlerName]
-    if (!requestHandler) return replyError(new Error(`No such function: ${handlerName}`), 501)
-
     const bodyChunks = []
     request
       .on('data', chunk => {
@@ -30,26 +21,29 @@ export default function server (handlers = {}) {
       })
       .on('end', () => {
         const body = Buffer.concat(bodyChunks).toString()
-        const requestParams = JSON.parse(body)
+        const {method, params} = JSON.parse(body)
+        const requestHandler = handlers[method]
+        if (!requestHandler) return replyError(new Error(`No such function: ${method}`))
+
         const reply = getReplier(response)
-        handleRequest(requestHandler, requestParams, reply, replyError)
+        handleRequest(requestHandler, params, reply, replyError)
       })
   }
 }
 
 /**
- * Returns a function that sends an http error back to the client.
+ * Returns a function that sends an rpc error back to the client.
  *
  * @param  {http.ServerResponse}        response
  * @return {function (err, statusCode)}
  */
 function getErrorReplier (response) {
-  return function replyError (err, statusCode = 500) {
-    const data = JSON.stringify({
+  return function replyError (err) {
+    const errorData = {
       message: err.message,
       stack: err.stack,
-    })
-    send(response, statusCode, data)
+    }
+    send(response, {error: errorData})
   }
 }
 
@@ -61,8 +55,7 @@ function getErrorReplier (response) {
  */
 function getReplier (response) {
   return function reply (result) {
-    const data = JSON.stringify({result})
-    send(response, 200, data)
+    send(response, {result})
   }
 }
 
@@ -70,13 +63,12 @@ function getReplier (response) {
  * Prepares the respone and sends the data to the client.
  *
  * @param  {http.ServerResponse} response
- * @param  {int}                 statusCode
  * @param  {json}                data
  */
-function send (response, statusCode, data) {
-  response.statusCode = statusCode
+function send (response, data) {
+  response.statusCode = 200
   response.setHeader('Content-Type', 'application/json')
-  response.end(data, 'utf-8')
+  response.end(JSON.stringify(data))
 }
 
 /**
