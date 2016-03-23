@@ -1,6 +1,6 @@
 {
   "name": "dirty-rpc",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "expose functions as remote calls",
   "main": "lib/index.js",
   "scripts": {
